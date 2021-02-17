@@ -27,6 +27,7 @@ disablePkgsList="
 ./feeds/packages/net/kcptun 
 ./feeds/packages/net/smartdns 
 ./feeds/packages/net/xtables-addons 
+./feeds/packages/net/softethervpn5 
 ./feeds/luci/applications/luci-app-sqm
 "
 
