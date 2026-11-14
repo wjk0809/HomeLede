@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_VERSION:=2.10
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 PKG_HASH:=88215a62291b9ba87da8e50b077741103cdc08fb6c9e1ebd34dfaace746d3201
 
 PKG_MAINTAINER:=Christian Marangi <ansuelsmth@gmail.com>
@@ -9,6 +9,7 @@ PKG_MAINTAINER:=Christian Marangi <ansuelsmth@gmail.com>
 PKG_BUILD_DEPENDS:=arm-trusted-firmware-tools/host arm-trusted-firmware-airoha/host
 
 HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/trusted-firmware-a-airoha-$(PKG_VERSION)
+HOST_PATCH_DIR:=$(CURDIR)/host-patches
 
 include $(INCLUDE_DIR)/trusted-firmware-a.mk
 include $(INCLUDE_DIR)/host-build.mk
@@ -67,7 +68,7 @@ TFA_TARGETS:= \
 	an7583-bl2 an7583-bl31
 
 TFA_MAKE_FLAGS= \
-	ARM32TOOLCHAIN_BASE=$(PKG_BUILD_DIR)/$(BL2_GCC_SOURCE)/bin/arm-none-eabi- \
+	ARM32TOOLCHAIN_BASE=$(BL2_CROSS_COMPILE) \
 	MBEDTLS_DIR=$(PKG_BUILD_DIR)/$(MBEDTLS_SOURCE) \
 	ARCH=$(ARCH) CONFIG_ECNT=1  \
 	TCSUPPORT_OPENWRT=1 TCSUPPORT_ATF_UNOPEN=0 \
@@ -79,12 +80,24 @@ TFA_MAKE_FLAGS= \
 BL2_GCC_NAME:=arm-gnu-toolchain
 BL2_GCC_RELEASE:=15.3.rel1
 BL2_GCC_VERSION:=$(HOST_ARCH)-arm-none-eabi
+ifeq ($(HOST_OS),Darwin)
+  ifneq ($(filter arm64 aarch64,$(HOST_ARCH)),)
+    BL2_GCC_VERSION:=darwin-arm64-arm-none-eabi
+  else
+    # Arm no longer publishes an Intel macOS bundle for this release.
+    # Use the native Homebrew cross compiler on Intel Macs.
+    BL2_GCC_EXTERNAL:=1
+  endif
+endif
 BL2_GCC_SOURCE=$(BL2_GCC_NAME)-$(BL2_GCC_RELEASE)-$(BL2_GCC_VERSION)
+BL2_CROSS_COMPILE=$(if $(BL2_GCC_EXTERNAL),arm-none-eabi-,$(PKG_BUILD_DIR)/$(BL2_GCC_SOURCE)/bin/arm-none-eabi-)
 
 define Download/bl2-toolchain
   FILE:=$(BL2_GCC_SOURCE).tar.xz
   URL:=https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/$(BL2_GCC_RELEASE)/
-ifeq ($(HOST_ARCH),aarch64)
+ifeq ($(HOST_OS),Darwin)
+  HASH:=376808a59ca209c1413236f1c6a509e33da4b29857ab28642b9927cf3048af55
+else ifeq ($(HOST_ARCH),aarch64)
   HASH:=06979e0c8171de58e5dc2a2b2019330a290f30930f27728af98a83e1a7369b3a
 else
   HASH:=563bebb2b97d53382b956d6ee1fe61e2cae26699901417234a37df505ef9b5fa
@@ -92,10 +105,10 @@ endif
 endef
 
 define Download/atf-airoha
-  SOURCE_DATE:=2026-08-14
-  SOURCE_VERSION:=94892b9e42eb1f6992e60bce904c3ef42ea995c8
+  SOURCE_DATE:=2026-09-30
+  SOURCE_VERSION:=705478c3d84fb1cba4c2de1bb99c43098b785d61
   URL:=https://github.com/Ansuel/atf-airoha.git
-  MIRROR_HASH:=eec896b613b0aa8141f377ab9f6bef794f78ac1aed8be9efcefa927d69488dac
+  MIRROR_HASH:=24d08b8d47b7c9fa83cda20bd80b38f5872dc48f8ec770cb82582e7fa0c5b75c
   PROTO:=git
   FILE:=atf-airoha-$$$$(subst -,.,$$$$(SOURCE_DATE))~$$$$(call version_abbrev,$$$$(SOURCE_VERSION)).tar.zst
   SUBDIR:=atf-airoha
@@ -122,6 +135,7 @@ endef
 define Host/Prepare
 	$(eval $(call Download,atf-airoha-host))
 	$(TAR) -C $(HOST_BUILD_DIR) --strip-components=1 -xf $(DL_DIR)/$(FILE)
+	$(Host/Patch)
 endef
 
 HOST_CFLAGS += \
@@ -139,8 +153,12 @@ endef
 
 define Build/Prepare
 	$(if $(filter bl2,$(ATF_STAGE)),
-		$(eval $(call Download,bl2-toolchain))
-		$(TAR) -C $(PKG_BUILD_DIR) -xf $(DL_DIR)/$(FILE)
+		$(if $(BL2_GCC_EXTERNAL),
+			command -v $(BL2_CROSS_COMPILE)gcc >/dev/null || { \
+				echo "Airoha BL2 on Intel macOS requires: brew install arm-none-eabi-gcc" >&2; exit 1; },
+			$(eval $(call Download,bl2-toolchain))
+			$(TAR) -C $(PKG_BUILD_DIR) -xf $(DL_DIR)/$(FILE)
+		)
 	)
 
 	$(call Build/Prepare/Default,)
