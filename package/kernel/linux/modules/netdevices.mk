@@ -2045,15 +2045,15 @@ $(eval $(call KernelPackage,net-selftests))
 
 define KernelPackage/qcom-ppe
   SUBMENU:=$(NETWORK_DEVICES_MENU)
-  DEPENDS:=@TARGET_qualcommbe +kmod-libphy +kmod-pcs-qcom-ipq9574
+  DEPENDS:=@TARGET_qualcommbe +kmod-libphy +kmod-pcs-qcom-ipq9574 +kmod-nft-offload
   TITLE:=Qualcomm PPE ethernet controller
-  KCONFIG:= CONFIG_QCOM_PPE
+  KCONFIG:=CONFIG_QCOM_PPE CONFIG_NET_CLS_ACT=y
   FILES:=$(LINUX_DIR)/drivers/net/ethernet/qualcomm/ppe/qcom-ppe.ko
   AUTOLOAD:=$(call AutoProbe,qcom-ppe)
 endef
 
 define KernelPackage/qcom-ppe/description
-  This driver supports Qualcomm PPE ethternet controller
+  This driver supports Qualcomm PPE ethernet controller
   devices.
 endef
 
