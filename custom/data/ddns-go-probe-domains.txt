@@ -1,0 +1,11 @@
+ddns.oray.com
+ip.3322.net
+4.ipw.cn
+v4.yinghualuo.cn
+myip.ipip.net
+speed.neu6.edu.cn
+v6.ident.me
+6.ipw.cn
+v6.yinghualuo.cn
+api.ipify.org
+api64.ipify.org

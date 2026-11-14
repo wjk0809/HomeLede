@@ -16,6 +16,7 @@ PKG_FLAGS:=nonshared
 PKG_RELEASE:=$(COMMITCOUNT)
 
 PKG_FILE_DEPENDS:=$(PLATFORM_DIR)/ $(GENERIC_PLATFORM_DIR)/base-files/
+PKG_FILE_DEPENDS+=$(TOPDIR)/custom/data/ddns-go-probe-domains.txt $(TOPDIR)/custom/lib/passwall2-ddns-direct.sh
 PKG_BUILD_DEPENDS:=usign/host ucert/host
 PKG_LICENSE:=GPL-2.0
 
@@ -166,8 +167,16 @@ ifeq ($(CONFIG_LEGACY_SDCARD_SUPPORT),)
 endif
 
 
+# Keep the build defaults and the installed upgrade migration on one source list.
+define Package/base-files/install-ddns-direct
+	$(INSTALL_DIR) $(1)/usr/share/homelede
+	$(INSTALL_DATA) $(TOPDIR)/custom/data/ddns-go-probe-domains.txt $(1)/usr/share/homelede/ddns-go-probe-domains.txt
+	$(INSTALL_BIN) $(TOPDIR)/custom/lib/passwall2-ddns-direct.sh $(1)/usr/share/homelede/passwall2-ddns-direct.sh
+endef
+
 define Package/base-files/install
 	$(CP) ./files/* $(1)/
+	$(call Package/base-files/install-ddns-direct,$(1))
 	$(Package/base-files/install-key)
 	$(Package/base-files/nand-support)
 	$(Package/base-files/legacy-sdcard-support)

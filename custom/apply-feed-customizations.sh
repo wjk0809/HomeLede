@@ -381,5 +381,6 @@ apply_status_title   || [ "$CHECK_ONLY" = 1 ] || { echo "aborting" >&2; exit 1; 
 apply_cgroup_v2      || [ "$CHECK_ONLY" = 1 ] || { echo "aborting" >&2; exit 1; }
 # Replayed after every feed update; upstream drift must stop preparation.
 "$TOPDIR/custom/apply-ttyd-customization.sh" ${1:-} || exit 1
+sh "$TOPDIR/custom/apply-passwall2-ddns-direct.sh" ${1:-} || exit 1
 verify || exit 1
 exit 0

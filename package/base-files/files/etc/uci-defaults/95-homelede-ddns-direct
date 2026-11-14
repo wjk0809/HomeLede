@@ -1,0 +1,4 @@
+#!/bin/sh
+# Independent one-time migration; successful skips are deliberate.
+# A genuine read/validation/write failure returns nonzero for retry next boot.
+sh /usr/share/homelede/passwall2-ddns-direct.sh
